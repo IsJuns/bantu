@@ -22,74 +22,21 @@ const props = defineProps<SidebarProps>()
 const data = {
   navMain: [
     {
-      title: 'Getting Started',
-      url: '#',
+      title: "Dashboard",
+      url: "/",
       items: [
         {
-          title: 'Installation',
-          url: '#',
+          title: "Input Data",
+          url: "/inputData"
         },
         {
-          title: 'Project Structure',
-          url: '#',
-        },
-      ],
+          title: "Output Data",
+          url: "/outputData"
+        }
+
+      ]
     },
-    {
-      title: 'Building Your Application',
-      url: '#',
-      items: [
-        {
-          title: 'Routing',
-          url: '#',
-        },
-        {
-          title: 'Data Fetching',
-          url: '#',
-          isActive: true,
-        },
-        {
-          title: 'Rendering',
-          url: '#',
-        },
-        {
-          title: 'Caching',
-          url: '#',
-        },
-        {
-          title: 'Styling',
-          url: '#',
-        },
-        {
-          title: 'Optimizing',
-          url: '#',
-        },
-        {
-          title: 'Configuring',
-          url: '#',
-        },
-        {
-          title: 'Testing',
-          url: '#',
-        },
-        {
-          title: 'Authentication',
-          url: '#',
-        },
-        {
-          title: 'Deploying',
-          url: '#',
-        },
-        {
-          title: 'Upgrading',
-          url: '#',
-        },
-        {
-          title: 'Examples',
-          url: '#',
-        },
-      ],
-    },
+    
     {
       title: 'API Reference',
       url: '#',
@@ -121,37 +68,15 @@ const data = {
       ],
     },
     {
-      title: 'Architecture',
+      title: 'Account',
       url: '#',
       items: [
         {
-          title: 'Accessibility',
+          title: 'Settings',
           url: '#',
-        },
+        },  
         {
-          title: 'Fast Refresh',
-          url: '#',
-        },
-        {
-          title: 'Next.js Compiler',
-          url: '#',
-        },
-        {
-          title: 'Supported Browsers',
-          url: '#',
-        },
-        {
-          title: 'Turbopack',
-          url: '#',
-        },
-      ],
-    },
-    {
-      title: 'Community',
-      url: '#',
-      items: [
-        {
-          title: 'Contribution Guide',
+          title: 'Logout',
           url: '#',
         },
       ],
@@ -190,7 +115,7 @@ const data = {
             </SidebarMenuButton>
             <SidebarMenuSub v-if="item.items.length">
               <SidebarMenuSubItem v-for="childItem in item.items" :key="childItem.title">
-                <SidebarMenuSubButton as-child :is-active="childItem.isActive">
+                <SidebarMenuSubButton as-child >
                   <a :href="childItem.url">{{ childItem.title }}</a>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>

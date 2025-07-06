@@ -6,4 +6,8 @@
 
 <script setup>
 import RegisterForm from '@/components/RegisterForm.vue'
+
+definePageMeta({
+  layout: 'false'
+})
 </script>

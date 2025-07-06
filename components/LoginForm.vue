@@ -23,7 +23,7 @@ async function handleLogin() {
   error.value = ''
   try {
     await signInWithEmailAndPassword(auth, email.value, password.value)
-    router.push('/dashboard') // ✅ Arahkan ke dashboard jika sukses
+    router.push('/') // ✅ Arahkan ke dashboard jika sukses
   } catch (err: any) {
     error.value = err.message // ❌ Tampilkan error kalau gagal
   }
