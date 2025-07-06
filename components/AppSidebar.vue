@@ -77,7 +77,7 @@ const data = {
         },  
         {
           title: 'Logout',
-          url: '#',
+          url: '/login',
         },
       ],
     },
@@ -109,14 +109,14 @@ const data = {
         <SidebarMenu>
           <SidebarMenuItem v-for="item in data.navMain" :key="item.title">
             <SidebarMenuButton as-child>
-              <a :href="item.url" class="font-medium">
+              <NuxtLink :to="item.url" class="font-medium">
                 {{ item.title }}
-              </a>
+              </NuxtLink>
             </SidebarMenuButton>
             <SidebarMenuSub v-if="item.items.length">
               <SidebarMenuSubItem v-for="childItem in item.items" :key="childItem.title">
                 <SidebarMenuSubButton as-child >
-                  <a :href="childItem.url">{{ childItem.title }}</a>
+                  <NuxtLink :to="childItem.url">{{ childItem.title }}</NuxtLink>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             </SidebarMenuSub>
