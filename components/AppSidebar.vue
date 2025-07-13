@@ -45,26 +45,26 @@ const data = {
           title: 'Components',
           url: '#',
         },
-        {
-          title: 'File Conventions',
-          url: '#',
-        },
-        {
-          title: 'Functions',
-          url: '#',
-        },
-        {
-          title: 'next.config.js Options',
-          url: '#',
-        },
-        {
-          title: 'CLI',
-          url: '#',
-        },
-        {
-          title: 'Edge Runtime',
-          url: '#',
-        },
+        // {
+        //   title: 'File Conventions',
+        //   url: '#',
+        // },
+        // {
+        //   title: 'Functions',
+        //   url: '#',
+        // },
+        // {
+        //   title: 'next.config.js Options',
+        //   url: '#',
+        // },
+        // {
+        //   title: 'CLI',
+        //   url: '#',
+        // },
+        // {
+        //   title: 'Edge Runtime',
+        //   url: '#',
+        // },
       ],
     },
     {
@@ -77,7 +77,7 @@ const data = {
         },  
         {
           title: 'Logout',
-          url: '/login',
+          url: '/logout',
         },
       ],
     },
@@ -96,8 +96,8 @@ const data = {
                 <GalleryVerticalEnd class="size-4" />
               </div>
               <div class="flex flex-col gap-0.5 leading-none">
-                <span class="font-semibold">Input Data Warga</span>
-                <span class="">v1.0.0</span>
+                <span class="font-semibold">Decision Support System</span>
+                <span class="">DSS</span>
               </div>
             </a>
           </SidebarMenuButton>

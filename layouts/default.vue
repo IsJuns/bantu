@@ -1,10 +1,13 @@
-<script lang="ts">
-export const iframeHeight = '800px'
-export const description = 'A sidebar with submenus.'
-</script>
-
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+
 import AppSidebar from '@/components/AppSidebar.vue'
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,18 +16,23 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-
 import { Separator } from '@/components/ui/separator'
 
-import {
-  SidebarProvider,
-  SidebarInset,
-  SidebarTrigger,
-} from '@/components/ui/sidebar'
+const route = useRoute()
+const hideLayoutOn = ['/login', '/register']
+
+// 🧠 Gunakan computed agar tetap reaktif
+const isHidden = computed(() => hideLayoutOn.includes(route.path))
 </script>
 
 <template>
-  <SidebarProvider>
+  <!-- Jika halaman termasuk dalam hideLayoutOn (login, register), tampilkan tanpa layout -->
+  <div v-if="isHidden">
+    <slot />
+  </div>
+
+  <!-- Selain itu, tampilkan layout lengkap -->
+  <SidebarProvider v-else>
     <AppSidebar />
     <SidebarInset>
       <header class="flex h-16 shrink-0 items-center gap-2 border-b">
@@ -34,13 +42,11 @@ import {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem class="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
-                </BreadcrumbLink>
+                <BreadcrumbLink href="#">Building</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator class="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                <BreadcrumbPage>Dashboard</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

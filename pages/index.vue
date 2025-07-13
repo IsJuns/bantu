@@ -1,18 +1,20 @@
-<template>
-  <div>
-    <h1>Hello World dari index</h1>
-  </div>
-</template>
+<script setup lang="ts">
+import { useAuth } from '~/composables/useAuthUser'
+import { useRouter } from 'vue-router'
 
-<script lang="ts" setup>
-
-</script>
-
-<style>
-
-</style>
-
-<!-- <script setup>
 const router = useRouter()
-router.replace('/login')
-</script> -->
+const { currentUser, authInitialized } = useAuth()
+
+watchEffect(() => {
+  if (!authInitialized.value) return
+
+  if (currentUser.value) {
+    router.replace('/dashboard')
+  } else {
+    router.replace('/login')
+  }
+})
+</script>
+<template>
+  <!-- Redirect halaman tidak menampilkan apa-apa -->
+</template>
