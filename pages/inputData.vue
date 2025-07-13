@@ -7,17 +7,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { db } from '~/lib/firebase'
 import { collection, addDoc } from 'firebase/firestore'
 
+// 💡 State form
 const nama = ref('')
 const nik = ref('')
 const penghasilan = ref('')
 const jumlahTanggungan = ref('')
 const kondisiTempatTinggal = ref('')
 const statusPekerjaan = ref('')
+
+// Meta
 definePageMeta({
   title: 'Input Data Warga'
 })
 
+// ✅ Validasi + Simpan ke Firestore
 const submitForm = async () => {
+  // 🔍 Validasi input kosong
+  if (
+    !nama.value ||
+    !nik.value ||
+    !penghasilan.value ||
+    !jumlahTanggungan.value ||
+    !kondisiTempatTinggal.value ||
+    !statusPekerjaan.value
+  ) {
+    alert('⚠️ Harap lengkapi semua data!')
+    return
+  }
+
   try {
     await addDoc(collection(db, 'data_warga'), {
       nama: nama.value,
@@ -26,9 +43,12 @@ const submitForm = async () => {
       jumlah_tanggungan: parseInt(jumlahTanggungan.value),
       kondisi_tempat_tinggal: kondisiTempatTinggal.value,
       status_pekerjaan: statusPekerjaan.value,
-      timestamp: new Date(),
+      timestamp: new Date()
     })
-    alert('Data berhasil disimpan!')
+
+    alert('✅ Data berhasil disimpan!')
+
+    // 🔄 Reset form
     nama.value = ''
     nik.value = ''
     penghasilan.value = ''
@@ -36,7 +56,7 @@ const submitForm = async () => {
     kondisiTempatTinggal.value = ''
     statusPekerjaan.value = ''
   } catch (e) {
-    alert('Gagal menyimpan: ' + e)
+    alert('❌ Gagal menyimpan: ' + e)
   }
 }
 </script>
@@ -45,30 +65,37 @@ const submitForm = async () => {
   <div class="w-full max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow-md space-y-4">
     <h2 class="text-xl font-bold mb-4">Form Input Data Warga</h2>
 
+    <!-- 🔷 Nama -->
     <div class="space-y-2">
       <Label>Nama</Label>
       <Input v-model="nama" placeholder="Masukkan nama" />
     </div>
 
+    <!-- 🔷 NIK -->
     <div class="space-y-2">
       <Label>NIK</Label>
       <Input v-model="nik" placeholder="Masukkan NIK" />
     </div>
 
+    <!-- 🔷 Penghasilan -->
     <div class="space-y-2">
       <Label>Penghasilan</Label>
-      <Input v-model="penghasilan" placeholder="Masukkan penghasilan" />
+      <Input v-model="penghasilan" type="number" placeholder="Masukkan penghasilan (angka)" />
     </div>
 
+    <!-- 🔷 Tanggungan -->
     <div class="space-y-2">
       <Label>Jumlah Tanggungan</Label>
-      <Input v-model="jumlahTanggungan" placeholder="Masukkan jumlah tanggungan" />
+      <Input v-model="jumlahTanggungan" type="number" placeholder="Masukkan jumlah tanggungan" />
     </div>
 
+    <!-- 🔷 Kondisi Tempat Tinggal -->
     <div class="space-y-2">
       <Label>Kondisi Tempat Tinggal</Label>
       <Select v-model="kondisiTempatTinggal">
-        <SelectTrigger><SelectValue placeholder="Pilih kondisi" /></SelectTrigger>
+        <SelectTrigger>
+          <SelectValue placeholder="Pilih kondisi" />
+        </SelectTrigger>
         <SelectContent>
           <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
           <SelectItem value="Kontrak">Kontrak</SelectItem>
@@ -77,10 +104,13 @@ const submitForm = async () => {
       </Select>
     </div>
 
+    <!-- 🔷 Status Pekerjaan -->
     <div class="space-y-2">
       <Label>Status Pekerjaan</Label>
       <Select v-model="statusPekerjaan">
-        <SelectTrigger><SelectValue placeholder="Pilih status" /></SelectTrigger>
+        <SelectTrigger>
+          <SelectValue placeholder="Pilih status" />
+        </SelectTrigger>
         <SelectContent>
           <SelectItem value="Bekerja">Bekerja</SelectItem>
           <SelectItem value="Tidak Bekerja">Tidak Bekerja</SelectItem>
@@ -89,6 +119,7 @@ const submitForm = async () => {
       </Select>
     </div>
 
+    <!-- 🔘 Tombol Simpan -->
     <Button class="w-full mt-4" @click="submitForm">Simpan</Button>
   </div>
 </template>

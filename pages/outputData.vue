@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { doc, updateDoc } from 'firebase/firestore'
 import { ref as vueRef, reactive } from 'vue'
 
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,17 +40,24 @@ const editWarga = (warga: any) => {
 // Simpan hasil edit ke Firestore
 const simpanPerubahan = async () => {
   if (!selectedWarga.id) return
-  const wargaRef = doc(db, 'data_warga', selectedWarga.id)
-  await updateDoc(wargaRef, {
-    nama: selectedWarga.nama,
-    nik: selectedWarga.nik,
-    penghasilan: selectedWarga.penghasilan,
-    jumlah_tanggungan: selectedWarga.jumlah_tanggungan,
-    kondisi_tempat_tinggal: selectedWarga.kondisi_tempat_tinggal,
-    status_pekerjaan: selectedWarga.status_pekerjaan,
-  })
-  showEditModal.value = false
-  await fetchData() // refresh tabel
+
+  try {
+    const wargaRef = doc(db, 'data_warga', selectedWarga.id)
+    await updateDoc(wargaRef, {
+      nama: selectedWarga.nama,
+      nik: selectedWarga.nik,
+      penghasilan: selectedWarga.penghasilan,
+      jumlah_tanggungan: selectedWarga.jumlah_tanggungan,
+      kondisi_tempat_tinggal: selectedWarga.kondisi_tempat_tinggal,
+      status_pekerjaan: selectedWarga.status_pekerjaan,
+    })
+
+    showEditModal.value = false
+    await fetchData() // Refresh data di tabel
+    alert('✅ Data berhasil diperbarui!')
+  } catch (error) {
+    alert('❌ Gagal memperbarui data: ' + error)
+  }
 }
 
 const dataWarga = ref<any[]>([])
@@ -98,6 +106,50 @@ onMounted(fetchData)
     </CardHeader>
 
     <CardContent>
+      <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-xl space-y-4">
+          <h2 class="text-lg font-semibold mb-4">Edit Data Warga</h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium">Nama</label>
+              <Input v-model="selectedWarga.nama" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium">NIK</label>
+              <Input v-model="selectedWarga.nik" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium">Penghasilan</label>
+              <Input v-model.number="selectedWarga.penghasilan" type="number" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium">Tanggungan</label>
+              <Input v-model.number="selectedWarga.jumlah_tanggungan" type="number" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium">Kondisi Tempat Tinggal</label>
+              <Input v-model="selectedWarga.kondisi_tempat_tinggal" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium">Status Pekerjaan</label>
+              <Input v-model="selectedWarga.status_pekerjaan" />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-4">
+            <Button variant="outline" size="sm" @click="showEditModal = false">
+              Batal
+            </Button>
+            <Button variant="default" @click="simpanPerubahan">Simpan</Button>
+          </div>
+  </div>
+</div>
       <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
         <div class="flex gap-2 items-center w-full md:w-auto">
           <Input v-model="searchQuery" placeholder="Cari nama..." class="w-full md:w-[250px]" />
@@ -122,7 +174,7 @@ onMounted(fetchData)
     <TableHead>Kondisi</TableHead>
     <TableHead>Pekerjaan</TableHead>
     <TableHead>Skor Kelayakan</TableHead>
-    <TableHead>Aksi</TableHead> <!-- Kolom Aksi baru -->
+    <TableHead></TableHead> <!-- Kolom Aksi baru -->
   </TableRow>
 </TableHeader>
 
@@ -142,7 +194,7 @@ onMounted(fetchData)
     </TableCell>
     <TableCell>
       <!-- Tombol Edit -->
-      <Button variant="outline" size="sm" @click="editWarga(warga.id)">
+      <Button variant="outline" size="sm" @click="editWarga(warga)">
         Edit
       </Button>
     </TableCell>
