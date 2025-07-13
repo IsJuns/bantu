@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import AppSidebar from '@/components/AppSidebar.vue'
 import {
@@ -41,13 +42,20 @@ const isHidden = computed(() => hideLayoutOn.includes(route.path))
           <Separator orientation="vertical" class="mr-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem class="hidden md:block">
-                <BreadcrumbLink href="#">Building</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator class="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
-              </BreadcrumbItem>
+              <template v-if="route.path === '/dashboard'">
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                </BreadcrumbItem>
+              </template>
+              <template v-else>
+                <BreadcrumbLink as-child>
+                  <NuxtLink to="/dashboard">Dashboard</NuxtLink>
+                </BreadcrumbLink>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{{ route.meta.title || route.name }}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </template>
             </BreadcrumbList>
           </Breadcrumb>
         </div>

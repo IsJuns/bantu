@@ -26,7 +26,7 @@ const data = {
       url: "/",
       items: [
         {
-          title: "Input Data",
+          title: "Input Data Warga",
           url: "/inputData"
         },
         {
