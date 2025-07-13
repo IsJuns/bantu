@@ -5,7 +5,7 @@ import { db } from '~/lib/firebase'
 import { useRouter } from 'vue-router'
 import { doc, updateDoc } from 'firebase/firestore'
 import { ref as vueRef, reactive } from 'vue'
-
+import * as XLSX from 'xlsx'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,9 @@ import {
   TableHeader, TableRow
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
+let jsPDF: any
+let autoTable: any
+let saveAs: any
 
 definePageMeta({
   title: 'Output Data Warga'
@@ -76,12 +79,44 @@ const fetchData = async () => {
 }
 
 // Dummy logika SMART (sementara)
-const hitungSMART = () => {
-  dataWarga.value = dataWarga.value.map(w => ({
-    ...w,
-    skorKelayakan: parseFloat((Math.random()).toFixed(3)) // akan diganti metode SMART
-  }))
-}
+const hitungSMART = async () => {
+  // 1. Normalisasi nilai numerik
+  const penghasilanList = dataWarga.value.map(w => w.penghasilan)
+  const tanggunganList = dataWarga.value.map(w => w.jumlah_tanggungan)
+
+  const maxPenghasilan = Math.max(...penghasilanList)
+  const minPenghasilan = Math.min(...penghasilanList)
+
+  const maxTanggungan = Math.max(...tanggunganList)
+  const minTanggungan = Math.min(...tanggunganList)
+
+  // 2. Hitung skor tiap warga
+  for (const w of dataWarga.value) {
+      const normPenghasilan = (maxPenghasilan - w.penghasilan) / (maxPenghasilan - minPenghasilan || 1)
+      const normTanggungan = (w.jumlah_tanggungan - minTanggungan) / (maxTanggungan - minTanggungan || 1)
+      const skorKondisi = getSkorKondisi(w.kondisi_tempat_tinggal)
+      const skorPekerjaan = getSkorPekerjaan(w.status_pekerjaan)
+
+      const normKondisi = (3 - skorKondisi) / 2
+      const normPekerjaan = (skorPekerjaan - 1) / 2
+
+      const skor = parseFloat((
+        normPenghasilan * 0.4 +
+        normTanggungan * 0.2 +
+        normKondisi * 0.2 +
+        normPekerjaan * 0.2
+      ).toFixed(3))
+
+      // Simpan skor ke Firestore
+      const wargaRef = doc(db, 'data_warga', w.id)
+      await updateDoc(wargaRef, { skorKelayakan: skor })
+
+      // Update juga ke local data
+      w.skorKelayakan = skor
+    }
+
+    alert('✅ Perhitungan SMART berhasil & skor tersimpan!')
+  }
 
 // computed untuk pencarian + sorting
 const filteredWarga = computed(() => {
@@ -95,6 +130,77 @@ const filteredWarga = computed(() => {
     return [...filtered].sort((a, b) => a.nama.localeCompare(b.nama))
   }
 })
+
+const getSkorKondisi = (val: string) => {
+  switch (val) {
+    case 'Menumpang': return 1
+    case 'Kontrak': return 2
+    case 'Milik Sendiri': return 3
+    default: return 3
+  }
+}
+
+const getSkorPekerjaan = (val: string) => {
+  switch (val) {
+    case 'Tidak Bekerja': return 1
+    case 'Pelajar/Mahasiswa': return 2
+    case 'Bekerja': return 3
+    default: return 3
+  }
+}
+// Export ke Excel
+const exportToExcel = async () => {
+  if (process.client) {
+    const fileSaver = await import('file-saver')
+    const saveAs = fileSaver.saveAs
+
+    const wsData = dataWarga.value.map((w) => ({
+      Nama: w.nama,
+      NIK: w.nik,
+      Penghasilan: w.penghasilan,
+      Tanggungan: w.jumlah_tanggungan,
+      'Kondisi Tempat Tinggal': w.kondisi_tempat_tinggal,
+      'Status Pekerjaan': w.status_pekerjaan,
+      'Skor Kelayakan': w.skorKelayakan ?? '-',
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(wsData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Warga')
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' })
+    saveAs(blob, 'data-warga.xlsx')
+  }
+}
+
+// Export ke PDF
+const exportToPDF = async () => {
+  if (process.client) {
+    const { default: jsPDF } = await import('jspdf')
+    const autoTable = (await import('jspdf-autotable')).default
+
+    const doc = new jsPDF()
+    doc.text('Data Warga & Skor Kelayakan', 14, 15)
+
+    autoTable(doc, {
+      head: [['Nama', 'NIK', 'Penghasilan', 'Tanggungan', 'Kondisi', 'Pekerjaan', 'Skor']],
+      body: dataWarga.value.map(w => [
+        w.nama,
+        w.nik,
+        `Rp${w.penghasilan.toLocaleString()}`,
+        w.jumlah_tanggungan,
+        w.kondisi_tempat_tinggal,
+        w.status_pekerjaan,
+        w.skorKelayakan ?? '-'
+      ]),
+      startY: 20,
+    })
+
+    doc.save('data-warga.pdf')
+  }
+}
+
 
 onMounted(fetchData)
 </script>
@@ -160,6 +266,8 @@ onMounted(fetchData)
           <Button @click="hitungSMART" :disabled="isLoading">
             {{ isLoading ? 'Memuat...' : 'Hitung SMART' }}
           </Button>
+          <Button variant="outline" @click="exportToExcel">Export ke Excel</Button>
+          <Button variant="outline" @click="exportToPDF">Export ke PDF</Button>
         </div>
       </div>
 
@@ -187,7 +295,14 @@ onMounted(fetchData)
     <TableCell>{{ warga.kondisi_tempat_tinggal }}</TableCell>
     <TableCell>{{ warga.status_pekerjaan }}</TableCell>
     <TableCell>
-      <span v-if="warga.skorKelayakan">
+      <span
+        v-if="warga.skorKelayakan !== undefined"
+        :class="[
+          'badge',
+          warga.skorKelayakan >= 0.7 ? 'badge-green' :
+          warga.skorKelayakan >= 0.4 ? 'badge-yellow' : 'badge-red'
+        ]"
+      >
         {{ warga.skorKelayakan }}
       </span>
       <span v-else class="text-muted-foreground">-</span>

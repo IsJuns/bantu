@@ -26,8 +26,8 @@ const submitForm = async () => {
   if (
     !nama.value ||
     !nik.value ||
-    !penghasilan.value ||
-    !jumlahTanggungan.value ||
+    penghasilan.value === '' || isNaN(parseFloat(penghasilan.value)) ||
+    jumlahTanggungan.value === '' || isNaN(parseInt(jumlahTanggungan.value)) ||
     !kondisiTempatTinggal.value ||
     !statusPekerjaan.value
   ) {
@@ -62,7 +62,7 @@ const submitForm = async () => {
 </script>
 
 <template>
-  <div class="w-full max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow-md space-y-4">
+  <card class="p-6">
     <h2 class="text-xl font-bold mb-4">Form Input Data Warga</h2>
 
     <!-- 🔷 Nama -->
@@ -121,5 +121,5 @@ const submitForm = async () => {
 
     <!-- 🔘 Tombol Simpan -->
     <Button class="w-full mt-4" @click="submitForm">Simpan</Button>
-  </div>
+  </card>
 </template>
