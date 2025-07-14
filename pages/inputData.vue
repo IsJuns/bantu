@@ -14,6 +14,8 @@ const penghasilan = ref('')
 const jumlahTanggungan = ref('')
 const kondisiTempatTinggal = ref('')
 const statusPekerjaan = ref('')
+const rt = ref('')
+const rw = ref('')
 
 // Meta
 definePageMeta({
@@ -29,7 +31,9 @@ const submitForm = async () => {
     penghasilan.value === '' || isNaN(parseFloat(penghasilan.value)) ||
     jumlahTanggungan.value === '' || isNaN(parseInt(jumlahTanggungan.value)) ||
     !kondisiTempatTinggal.value ||
-    !statusPekerjaan.value
+    !statusPekerjaan.value ||
+    !rt.value || !rw.value
+    
   ) {
     alert('⚠️ Harap lengkapi semua data!')
     return
@@ -43,6 +47,8 @@ const submitForm = async () => {
       jumlah_tanggungan: parseInt(jumlahTanggungan.value),
       kondisi_tempat_tinggal: kondisiTempatTinggal.value,
       status_pekerjaan: statusPekerjaan.value,
+      rt: parseInt(rt.value),
+      rw: parseInt(rw.value),
       timestamp: new Date()
     })
 
@@ -55,6 +61,9 @@ const submitForm = async () => {
     jumlahTanggungan.value = ''
     kondisiTempatTinggal.value = ''
     statusPekerjaan.value = ''
+    rt.value = ''
+    rw.value = ''
+
   } catch (e) {
     alert('❌ Gagal menyimpan: ' + e)
   }
@@ -87,6 +96,18 @@ const submitForm = async () => {
     <div class="space-y-2">
       <Label>Jumlah Tanggungan</Label>
       <Input v-model="jumlahTanggungan" type="number" placeholder="Masukkan jumlah tanggungan" />
+    </div>
+
+    <!-- 🔷 RT -->
+    <div class="space-y-2">
+      <Label>RT</Label>
+      <Input v-model="rt" type="number" placeholder="Masukkan RT : 00" />
+    </div>
+
+    <!-- 🔷 RW -->
+    <div class="space-y-2">
+      <Label>RW</Label>
+      <Input v-model="rw" type="number" placeholder="Masukkan RW : 00" />
     </div>
 
     <!-- 🔷 Kondisi Tempat Tinggal -->

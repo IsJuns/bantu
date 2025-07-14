@@ -33,6 +33,8 @@ const selectedWarga = reactive<any>({
   jumlah_tanggungan: 0,
   kondisi_tempat_tinggal: '',
   status_pekerjaan: '',
+  rt: '',
+  rw: ''
 })
 
 // Buka modal dengan data
@@ -53,6 +55,8 @@ const simpanPerubahan = async () => {
       jumlah_tanggungan: selectedWarga.jumlah_tanggungan,
       kondisi_tempat_tinggal: selectedWarga.kondisi_tempat_tinggal,
       status_pekerjaan: selectedWarga.status_pekerjaan,
+      rt: selectedWarga.rt,
+      rw: selectedWarga.rw
     })
 
     showEditModal.value = false
@@ -238,6 +242,16 @@ onMounted(fetchData)
             </div>
 
             <div>
+              <label class="block text-sm font-medium">RT</label>
+              <Input v-model="selectedWarga.rt" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium">RW</label>
+              <Input v-model="selectedWarga.rw" />
+            </div>
+
+            <div>
               <label class="block text-sm font-medium">Kondisi Tempat Tinggal</label>
               <Input v-model="selectedWarga.kondisi_tempat_tinggal" />
             </div>
@@ -279,6 +293,8 @@ onMounted(fetchData)
     <TableHead>NIK</TableHead>
     <TableHead>Penghasilan</TableHead>
     <TableHead>Tanggungan</TableHead>
+    <TableHead>RT</TableHead>
+    <TableHead>RW</TableHead>
     <TableHead>Kondisi</TableHead>
     <TableHead>Pekerjaan</TableHead>
     <TableHead>Skor Kelayakan</TableHead>
@@ -292,6 +308,8 @@ onMounted(fetchData)
     <TableCell>{{ warga.nik }}</TableCell>
     <TableCell>Rp{{ warga.penghasilan.toLocaleString() }}</TableCell>
     <TableCell>{{ warga.jumlah_tanggungan }}</TableCell>
+    <TableCell>{{ warga.rt }}</TableCell>
+    <TableCell>{{ warga.rw }}</TableCell>
     <TableCell>{{ warga.kondisi_tempat_tinggal }}</TableCell>
     <TableCell>{{ warga.status_pekerjaan }}</TableCell>
     <TableCell>

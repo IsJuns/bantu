@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { db } from '~/lib/firebase'
 import { collection, getDocs } from 'firebase/firestore'
 
@@ -8,20 +8,29 @@ import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import { useRouter } from 'vue-router'
 import PieChart from '@/components/PieChart.vue'
+import LineChart from '@/components/LineChart.vue'
 
 const router = useRouter()
+
+const chartMode = ref<'RT' | 'RW'>('RT')
+const averageLabels = ref<string[]>([])
+const averageData = ref<number[]>([])
 
 const totalWarga = ref(0)
 const layak = ref(0)
 const pertimbangan = ref(0)
 const tidakLayak = ref(0)
-const topWarga = ref<any[]>([])
+const allWarga = ref<any[]>([]) // ✅ Simpan semua data di sini
 
+// Fetch data hanya sekali
 const fetchDashboardData = async () => {
   try {
     const snapshot = await getDocs(collection(db, 'data_warga'))
 
-    type Warga = {
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as {
       id: string
       nama: string
       nik: string
@@ -30,27 +39,54 @@ const fetchDashboardData = async () => {
       kondisi_tempat_tinggal: string
       status_pekerjaan: string
       skorKelayakan?: number
-    }
+      rt?: number
+      rw?: number
+    }[]
 
-    const data = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Warga[]
+    allWarga.value = data
 
     totalWarga.value = data.length
     layak.value = data.filter(w => (w.skorKelayakan ?? 0) >= 0.7).length
     pertimbangan.value = data.filter(w => (w.skorKelayakan ?? 0) >= 0.4 && (w.skorKelayakan ?? 0) < 0.7).length
     tidakLayak.value = data.filter(w => (w.skorKelayakan ?? 0) < 0.4).length
 
-    topWarga.value = [...data]
-      .filter(w => typeof w.skorKelayakan === 'number')
-      .sort((a, b) => (b.skorKelayakan ?? 0) - (a.skorKelayakan ?? 0))
-      .slice(0, 5)
+    hitungRataRataChart(chartMode.value)
   } catch (err) {
     console.error('Gagal mengambil data dashboard:', err)
-    // Optional: tampilkan pesan error ke user
   }
 }
+
+// Hitung rata-rata skor berdasarkan RT atau RW
+const hitungRataRataChart = (mode: 'RT' | 'RW') => {
+  const grup: Record<number, number[]> = {}
+  
+  for (const w of allWarga.value) {
+    if (typeof w.skorKelayakan !== 'number') continue
+
+    const key = parseInt(mode === 'RT' ? w.rt : w.rw)
+    if (isNaN(key)) continue
+
+
+    if (!grup[key]) grup[key] = []
+    grup[key].push(w.skorKelayakan)
+  }
+  console.log('⏳ Grup:', grup)
+  
+  averageLabels.value = Object.keys(grup).map(k => `${mode} ${k}`)
+  averageData.value = Object.values(grup).map(list => {
+    const total = list.reduce((a, b) => a + b, 0)
+    return parseFloat((total / list.length).toFixed(3))
+  })
+  console.log('✅ Label Final:', averageLabels.value)
+  console.log('✅ Data Final:', averageData.value)
+
+
+}
+
+// ⏱ Update chart jika mode berubah, tanpa ambil data ulang
+watch(chartMode, (mode) => {
+  hitungRataRataChart(mode)
+})
 
 onMounted(fetchDashboardData)
 </script>
@@ -87,32 +123,20 @@ onMounted(fetchDashboardData)
         <Card class="p-4">
           <CardTitle class="mb-4">Distribusi Kelayakan</CardTitle>
           <PieChart
-            v-if="totalWarga > 0"
+            v-if="[layak, pertimbangan, tidakLayak].every(v => typeof v === 'number')"
             :labels="['Layak', 'Pertimbangan', 'Tidak Layak']"
             :data="[layak, pertimbangan, tidakLayak]"
           />
         </Card>
-
         <Card class="p-4">
-          <CardTitle class="mb-4">Top 5 Skor Kelayakan</CardTitle>
-          <div class="overflow-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr>
-                  <th class="text-left py-2">Nama</th>
-                  <th class="text-left py-2">NIK</th>
-                  <th class="text-left py-2">Skor</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="w in topWarga" :key="w.id">
-                  <td class="py-1">{{ w.nama }}</td>
-                  <td class="py-1">{{ w.nik }}</td>
-                  <td class="py-1 font-medium">{{ w.skorKelayakan?.toFixed(3) }}</td>
-                </tr>
-              </tbody>
-            </table>
+          <CardTitle class="mb-2">Skor Rata-Rata per {{ chartMode }}</CardTitle>
+          <div class="flex justify-end mb-4">
+            <select v-model="chartMode" class="border px-2 py-1 rounded text-sm">
+              <option value="RT">Per RT</option>
+              <option value="RW">Per RW</option>
+            </select>
           </div>
+          <LineChart :labels="averageLabels" :data="averageData" />
         </Card>
       </div>
     </CardContent>
