@@ -1,32 +1,68 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue' // Tambahkan 'computed'
 import { db } from '~/lib/firebase'
 import { collection, getDocs } from 'firebase/firestore'
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import { useRouter } from 'vue-router'
-import PieChart from '@/components/PieChart.vue'
 import LineChart from '@/components/LineChart.vue'
+import RTRWBreakdownChart from '@/components/RTRWBreakdownChart.vue'
+import PieChart from '~/components/PieChart.vue'
 
 const router = useRouter()
-
 const chartMode = ref<'RT' | 'RW'>('RT')
 const averageLabels = ref<string[]>([])
 const averageData = ref<number[]>([])
-
 const totalWarga = ref(0)
 const layak = ref(0)
 const pertimbangan = ref(0)
 const tidakLayak = ref(0)
-const allWarga = ref<any[]>([]) // ✅ Simpan semua data di sini
+const allWarga = ref<any[]>([])
 
-// Fetch data hanya sekali
+// Warna yang konsisten dengan tema untuk legend
+const legendColors = [
+  '#10B981', // Green untuk Layak
+  '#F59E0B', // Yellow untuk Pertimbangan  
+  '#EF4444'  // Red untuk Tidak Layak
+]
+
+// Computed properties untuk legend dan summary cards
+const totalDataDonut = computed(() => {
+  return layak.value + pertimbangan.value + tidakLayak.value
+})
+
+const legendDataDonut = computed(() => {
+  const data = [layak.value, pertimbangan.value, tidakLayak.value]
+  const labels = ['Layak', 'Pertimbangan', 'Tidak Layak']
+  return labels.map((label, index) => ({
+    label,
+    value: data[index],
+    color: legendColors[index],
+    percentage: totalDataDonut.value > 0 
+      ? Math.round((data[index] / totalDataDonut.value) * 100)
+      : 0
+  }))
+})
+
+const layakPercentage = computed(() => {
+  if (totalDataDonut.value === 0) return 0
+  return Math.round((layak.value / totalDataDonut.value) * 100)
+})
+
+const effectiveness = computed(() => {
+  if (totalDataDonut.value === 0) return 'N/A'
+  
+  const score = ((layak.value * 1) + (pertimbangan.value * 0.5)) / totalDataDonut.value
+  if (score >= 0.8) return 'Tinggi'
+  if (score >= 0.6) return 'Sedang'
+  return 'Rendah'
+})
+
+// Fetch data dari Firebase
 const fetchDashboardData = async () => {
   try {
     const snapshot = await getDocs(collection(db, 'data_warga'))
-
     const data = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -44,12 +80,10 @@ const fetchDashboardData = async () => {
     }[]
 
     allWarga.value = data
-
     totalWarga.value = data.length
     layak.value = data.filter(w => (w.skorKelayakan ?? 0) >= 0.7).length
     pertimbangan.value = data.filter(w => (w.skorKelayakan ?? 0) >= 0.4 && (w.skorKelayakan ?? 0) < 0.7).length
     tidakLayak.value = data.filter(w => (w.skorKelayakan ?? 0) < 0.4).length
-
     hitungRataRataChart(chartMode.value)
   } catch (err) {
     console.error('Gagal mengambil data dashboard:', err)
@@ -59,36 +93,30 @@ const fetchDashboardData = async () => {
 // Hitung rata-rata skor berdasarkan RT atau RW
 const hitungRataRataChart = (mode: 'RT' | 'RW') => {
   const grup: Record<number, number[]> = {}
-  
+    
   for (const w of allWarga.value) {
     if (typeof w.skorKelayakan !== 'number') continue
-
     const key = parseInt(mode === 'RT' ? w.rt : w.rw)
     if (isNaN(key)) continue
-
-
     if (!grup[key]) grup[key] = []
     grup[key].push(w.skorKelayakan)
   }
-  console.log('⏳ Grup:', grup)
-  
+    
   averageLabels.value = Object.keys(grup).map(k => `${mode} ${k}`)
   averageData.value = Object.values(grup).map(list => {
     const total = list.reduce((a, b) => a + b, 0)
     return parseFloat((total / list.length).toFixed(3))
   })
-  console.log('✅ Label Final:', averageLabels.value)
-  console.log('✅ Data Final:', averageData.value)
-
-
 }
 
-// ⏱ Update chart jika mode berubah, tanpa ambil data ulang
+// Update chart jika mode berubah
 watch(chartMode, (mode) => {
   hitungRataRataChart(mode)
 })
 
-onMounted(fetchDashboardData)
+onMounted(() => {
+  fetchDashboardData()
+})
 </script>
 
 <template>
@@ -96,7 +124,6 @@ onMounted(fetchDashboardData)
     <CardHeader>
       <CardTitle class="text-xl">Dashboard</CardTitle>
     </CardHeader>
-
     <CardContent class="space-y-6">
       <!-- Ringkasan Stat -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -118,28 +145,67 @@ onMounted(fetchDashboardData)
         </Card>
       </div>
 
-      <!-- Grid Bawah: Chart & Top 5 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card class="p-4">
-          <CardTitle class="mb-4">Distribusi Kelayakan</CardTitle>
-          <PieChart
-            v-if="[layak, pertimbangan, tidakLayak].every(v => typeof v === 'number')"
-            :labels="['Layak', 'Pertimbangan', 'Tidak Layak']"
-            :data="[layak, pertimbangan, tidakLayak]"
-          />
-        </Card>
-        <Card class="p-4">
-          <CardTitle class="mb-2">Skor Rata-Rata per {{ chartMode }}</CardTitle>
-          <div class="flex justify-end mb-4">
-            <select v-model="chartMode" class="border px-2 py-1 rounded text-sm">
-              <option value="RT">Per RT</option>
-              <option value="RW">Per RW</option>
-            </select>
+      <!-- Grid Bawah: Donut Chart & RT/RW Breakdown -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Kiri: Donut Chart, Legend, Summary Cards & SMART Criteria Weights -->
+        <div class="lg:col-span-1 space-y-6">
+          <div class="bg-white border rounded-lg p-6 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4">Distribusi Kelayakan</h3>
+            <div class="h-64"> <!-- Tinggi yang lebih pas untuk chart saja -->
+              <PieChart
+                v-if="[layak, pertimbangan, tidakLayak].every(v => typeof v === 'number')"
+                :labels="['Layak', 'Pertimbangan', 'Tidak Layak']"
+                :data="[layak, pertimbangan, tidakLayak]"
+              />
+            </div>
+            
+            <!-- Custom Legend dengan Badge (dipindahkan ke sini) -->
+            <div class="mt-6 space-y-3">
+              <div v-for="(item, index) in legendDataDonut" :key="index" 
+                   class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div class="flex items-center space-x-3">
+                  <div 
+                    class="w-4 h-4 rounded-full flex-shrink-0"
+                    :style="{ backgroundColor: item.color }"
+                  ></div>
+                  <span class="font-medium text-gray-700">{{ item.label }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-lg font-bold" :style="{ color: item.color }">
+                    {{ item.value }}
+                  </span>
+                  <span class="text-sm text-gray-500 bg-white px-2 py-1 rounded-full">
+                    {{ item.percentage }}%
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Summary Stats (dipindahkan ke sini) -->
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-3 rounded-lg text-center">
+                <div class="text-sm opacity-90">Tingkat Kelayakan</div>
+                <div class="text-xl font-bold">{{ layakPercentage }}%</div>
+              </div>
+              <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-lg text-center">
+                <div class="text-sm opacity-90">Efektivitas</div>
+                <div class="text-xl font-bold">{{ effectiveness }}</div>
+              </div>
+            </div>
           </div>
-          <LineChart :labels="averageLabels" :data="averageData" />
-        </Card>
+          
+          <!-- ✅ SMART Criteria Weights (tetap di sini, sekarang tidak akan menimpa) -->
+          <SmartCriteriaWeights />
+        </div>
+
+        <!-- Kanan: RT/RW Breakdown Chart - 2 kolom -->
+        <div class="lg:col-span-2">
+          <RTRWBreakdownChart 
+            :allWarga="allWarga" 
+            @refresh-dashboard="fetchDashboardData" 
+          />
+        </div>
       </div>
     </CardContent>
   </Card>
 </template>
-
