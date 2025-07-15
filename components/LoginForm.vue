@@ -7,11 +7,15 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { 
+  signInWithEmailAndPassword, 
+  GoogleAuthProvider, 
+  signInWithPopup 
+} from 'firebase/auth' // Hanya import yang diperlukan untuk Google
 import { auth } from '@/lib/firebase' // Pastikan ini mengarah ke inisialisasi Firebase yang benar
 
 const router = useRouter()
-const emit = defineEmits(['toggle']) // Jika ini digunakan untuk toggle antara login/register di parent
+const emit = defineEmits(['toggle'])
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
@@ -19,17 +23,41 @@ const props = defineProps<{
 const email = ref('')
 const password = ref('')
 const error = ref('')
-const isLoading = ref(false) // Tambahkan state loading
+const isLoading = ref(false)
+const captchaVerified = ref(false) // State untuk verifikasi CAPTCHA
 
-async function handleLogin() {
+// Fungsi untuk Login Google
+const handleGoogleLogin = async () => {
   error.value = ''
-  isLoading.value = true // Set loading true saat mulai login
+  isLoading.value = true
+  try {
+    const provider = new GoogleAuthProvider()
+    await signInWithPopup(auth, provider)
+    router.push('/')
+  } catch (err: any) {
+    console.error("Google Login Error:", err);
+    error.value = 'Gagal login dengan Google: ' + err.message;
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleLogin = async () => {
+  error.value = ''
+  isLoading.value = true
+
+  // Validasi CAPTCHA
+  if (!captchaVerified.value) {
+    error.value = 'Harap verifikasi bahwa Anda bukan robot.'
+    isLoading.value = false
+    return
+  }
+
   try {
     await signInWithEmailAndPassword(auth, email.value, password.value)
-    router.push('/') // ✅ Arahkan ke dashboard jika sukses
+    router.push('/') // Arahkan ke dashboard jika sukses
   } catch (err: any) {
-    console.error("Login Error:", err); // Log error lengkap untuk debugging
-    // Tampilkan pesan error yang lebih user-friendly
+    console.error("Login Error:", err);
     if (err.code === 'auth/invalid-email') {
       error.value = 'Email tidak valid.'
     } else if (err.code === 'auth/user-disabled') {
@@ -47,7 +75,7 @@ async function handleLogin() {
       error.value = 'Terjadi kesalahan saat login. Silakan coba lagi.'
     }
   } finally {
-    isLoading.value = false // Set loading false setelah selesai (berhasil/gagal)
+    isLoading.value = false
   }
 }
 </script>
@@ -88,6 +116,18 @@ async function handleLogin() {
               </div>
               <Input id="password" v-model="password" type="password" required />
             </div>
+
+            <!-- CAPTCHA Checkbox (Simulasi) -->
+            <div class="flex items-center space-x-2">
+              <input
+                id="captcha"
+                type="checkbox"
+                v-model="captchaVerified"
+                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <Label for="captcha">Saya bukan robot</Label>
+            </div>
+
             <Button type="submit" class="w-full" :disabled="isLoading">
               {{ isLoading ? 'Memuat...' : 'Login' }}
             </Button>
@@ -99,20 +139,12 @@ async function handleLogin() {
                 Atau lanjutkan dengan
               </span>
             </div>
-            <div class="grid grid-cols-3 gap-4">
-              <!-- Menggunakan placeholder.svg untuk ikon -->
-              <Button variant="outline" type="button" class="w-full">
-                <img src="/assets/icon/apple.svg" alt="Login with Apple" class="h-4 w-4" />
-                <span class="sr-only">Login with Apple</span>
+            <div class="grid grid-cols-1 gap-4"> <!-- Mengubah grid-cols-3 menjadi grid-cols-1 -->
+              <Button variant="outline" type="button" class="w-full" @click="handleGoogleLogin">
+                <img src="/assets/icon/google.svg" alt="Login with Google" class="h-4 w-4 mr-2" />
+                <span>Login dengan Google</span>
               </Button>
-              <Button variant="outline" type="button" class="w-full">
-                <img src="/assets/icon/google.svg" alt="Login with Google" class="h-4 w-4" />
-                <span class="sr-only">Login with Google</span>
-              </Button>
-              <Button variant="outline" type="button" class="w-full">
-                <img src="/assets/icon/meta.svg" alt="Login with Meta" class="h-4 w-4" />
-                <span class="sr-only">Login with Meta</span>
-              </Button>
+              <!-- Tombol Apple dan Meta dihapus -->
             </div>
             <div class="text-center text-sm">
               Belum punya akun?
@@ -123,7 +155,6 @@ async function handleLogin() {
           </div>
         </form>
         <div class="bg-muted relative hidden md:block">
-          <!-- Menggunakan placeholder.svg untuk gambar -->
           <img
             src="/assets/image/gamarlogin.jfif"
             alt="Image"
